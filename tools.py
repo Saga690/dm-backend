@@ -2,8 +2,8 @@ import json
 import yfinance as yf
 from scraping import fetch_stock_news_links, extract_full_stock_news
 import os
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import Chroma
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
