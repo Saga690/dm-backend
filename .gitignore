@@ -1,0 +1,6 @@
+*.env
+__pycache__
+agent.ipynb
+chroma_db/
+.venv
+stock_data/
