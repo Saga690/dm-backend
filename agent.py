@@ -45,6 +45,7 @@ def retrieve_stock_data_node(state: StockAgentState) -> StockAgentState:
         return state
     
     try:
+        print("Retrieving stock data for ticker:", state["ticker"])
         ticker = state["ticker"]
         stock_retriever = StockDataRetriever()
         stock_data = stock_retriever.get_all_stock_data(ticker)

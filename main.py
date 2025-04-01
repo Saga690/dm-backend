@@ -30,11 +30,11 @@ class StockQuery(BaseModel):
 # Define a route for stock analysis
 @app.post("/analyze_stock")
 def analyze_stock_endpoint(stock_query: StockQuery):
-    # try:
-        # response = analyze_stock(stock_query.query)  # Call the function
-        return {"response": "Hello"}
-    # except Exception as e:
-    #     raise HTTPException(status_code=500, detail=str(e))
+    try:
+        response = analyze_stock(stock_query.query)  # Call the function
+        return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Root endpoint
 @app.get("/")
