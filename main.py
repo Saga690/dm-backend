@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from agent import analyze_stock  
 import os
 import asyncio
+from fastapi.responses import JSONResponse
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -25,10 +26,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],  # Expose all headers
-    max_age=3600,  # Cache preflight requests for 1 hour
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Define a request model
@@ -45,24 +46,57 @@ async def analyze_stock_endpoint(stock_query: StockQuery, request: Request):
         
         try:
             response = await asyncio.wait_for(run_analysis(), timeout=300.0)
-            return {"response": response}
+            return JSONResponse(
+                content={"response": response},
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true"
+                }
+            )
         except asyncio.TimeoutError:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=504,
-                detail="Request timed out. The analysis is taking longer than expected. Please try again."
+                content={"detail": "Request timed out. The analysis is taking longer than expected. Please try again."},
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Credentials": "true"
+                }
             )
             
     except Exception as e:
         # Log the full error for debugging
         print(f"Error processing request: {str(e)}")
-        raise HTTPException(
+        return JSONResponse(
             status_code=500,
-            detail=f"An error occurred while processing your request: {str(e)}"
+            content={"detail": f"An error occurred while processing your request: {str(e)}"},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true"
+            }
         )
 
 # Root endpoint
 @app.get("/")
 def root():
     return {"message": "Stock Analysis API is running!"}
+
+# Add OPTIONS endpoint explicitly
+@app.options("/analyze_stock")
+async def options_analyze_stock():
+    return JSONResponse(
+        content={},
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true"
+        }
+    )
 
 
