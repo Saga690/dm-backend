@@ -11,7 +11,9 @@ app = FastAPI()
 origins=["https://stock-ai-frontend-git-main-divyanshs-projects-b99a3826.vercel.app"
          ,"https://stock-ai-frontend.vercel.app",
          "http://stock-ai-frontend.vercel.app",
-        "http://localhost:5173"]
+        "http://localhost:5173",
+        "https://dm-frontend-self.vercel.app/",
+        "https://dm-frontend-self.vercel.app"]
 
 app.add_middleware(
     CORSMiddleware,
