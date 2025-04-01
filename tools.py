@@ -10,6 +10,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain.tools import Tool
 import html
+import time
+from datetime import datetime, timedelta
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -17,6 +19,45 @@ warnings.filterwarnings("ignore")
 from dotenv import load_dotenv
 load_dotenv()  
 groq_api_key = os.getenv("GROQ_API_KEY")
+
+# Rate limiting configuration
+class RateLimiter:
+    def __init__(self, max_requests=30, time_window=60):  # 30 requests per minute
+        self.max_requests = max_requests
+        self.time_window = time_window
+        self.requests = []
+
+    def wait_if_needed(self):
+        now = datetime.now()
+        # Remove requests older than the time window
+        self.requests = [req_time for req_time in self.requests 
+                        if now - req_time < timedelta(seconds=self.time_window)]
+        
+        if len(self.requests) >= self.max_requests:
+            # Wait until the oldest request is outside the time window
+            sleep_time = (self.requests[0] + timedelta(seconds=self.time_window) - now).total_seconds()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+        
+        self.requests.append(now)
+
+# Initialize rate limiter
+rate_limiter = RateLimiter()
+
+def get_yfinance_data(ticker, retries=3, delay=2):
+    """Get Yahoo Finance data with retries and rate limiting"""
+    for attempt in range(retries):
+        try:
+            rate_limiter.wait_if_needed()
+            stock = yf.Ticker(ticker)
+            return stock
+        except Exception as e:
+            if "Too Many Requests" in str(e) and attempt < retries - 1:
+                print(f"Rate limit hit, waiting {delay} seconds before retry {attempt + 1}/{retries}")
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                raise e
 
 # Define the TickerExtractionTool
 class TickerExtractionTool:
@@ -55,7 +96,7 @@ class StockDataRetriever:
     def get_company_info(self, ticker):
         """Get basic company information"""
         try:
-            stock = yf.Ticker(ticker)
+            stock = get_yfinance_data(ticker)
             info = stock.info
             
             # Extract only the relevant fields
@@ -76,7 +117,7 @@ class StockDataRetriever:
     def get_key_metrics(self, ticker):
         """Get key financial metrics for a ticker"""
         try:
-            stock = yf.Ticker(ticker)
+            stock = get_yfinance_data(ticker)
             info = stock.info
             
             # Extract only key financial metrics
@@ -106,7 +147,7 @@ class StockDataRetriever:
     def get_financial_statements(self, ticker):
         """Get financial statements for a ticker"""
         try:
-            stock = yf.Ticker(ticker)
+            stock = get_yfinance_data(ticker)
             
             # Get financial statements
             income_stmt = stock.income_stmt
@@ -153,7 +194,7 @@ class StockDataRetriever:
     def get_historical_prices(self, ticker, period="2mo", interval="1d"):
         """Get historical price data for a ticker"""
         try:
-            stock = yf.Ticker(ticker)
+            stock = get_yfinance_data(ticker)
             hist = stock.history(period=period, interval=interval)
             
             # Convert to dictionary
@@ -175,7 +216,7 @@ class StockDataRetriever:
     def get_analyst_recommendations(self, ticker):
         """Get analyst recommendations for a ticker"""
         try:
-            stock = yf.Ticker(ticker)
+            stock = get_yfinance_data(ticker)
             recommendations = stock.recommendations
             
             if recommendations is not None and not recommendations.empty:
@@ -211,12 +252,22 @@ class StockDataRetriever:
         ticker_dir = os.path.join(self.output_dir, ticker)
         os.makedirs(ticker_dir, exist_ok=True)
         
-        # Fetch data
+        # Fetch data with delays between calls
         company_info = self.get_company_info(ticker)
+        time.sleep(1)  # Add delay between calls
+        
         key_metrics = self.get_key_metrics(ticker)
+        time.sleep(1)  # Add delay between calls
+        
         financial_statements = self.get_financial_statements(ticker)
+        time.sleep(1)  # Add delay between calls
+        
         historical_prices = self.get_historical_prices(ticker)
+        time.sleep(1)  # Add delay between calls
+        
         analyst_recommendations = self.get_analyst_recommendations(ticker)
+        time.sleep(1)  # Add delay between calls
+        
         company_news = self.get_company_news(ticker)
         
         # Combine all data into one object

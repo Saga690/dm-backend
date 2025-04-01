@@ -45,11 +45,11 @@ async def analyze_stock_endpoint(stock_query: StockQuery, request: Request):
             return analyze_stock(stock_query.query)
         
         try:
-            response = await asyncio.wait_for(run_analysis(), timeout=300.0)
+            response = await asyncio.wait_for(run_analysis(), timeout=3000.0)
             return JSONResponse(
                 content={"response": response},
                 headers={
-                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
                     "Access-Control-Allow-Methods": "POST, OPTIONS",
                     "Access-Control-Allow-Headers": "*",
                     "Access-Control-Allow-Credentials": "true"
@@ -60,7 +60,7 @@ async def analyze_stock_endpoint(stock_query: StockQuery, request: Request):
                 status_code=504,
                 content={"detail": "Request timed out. The analysis is taking longer than expected. Please try again."},
                 headers={
-                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
                     "Access-Control-Allow-Methods": "POST, OPTIONS",
                     "Access-Control-Allow-Headers": "*",
                     "Access-Control-Allow-Credentials": "true"
@@ -74,7 +74,7 @@ async def analyze_stock_endpoint(stock_query: StockQuery, request: Request):
             status_code=500,
             content={"detail": f"An error occurred while processing your request: {str(e)}"},
             headers={
-                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
                 "Access-Control-Allow-Headers": "*",
                 "Access-Control-Allow-Credentials": "true"
@@ -88,11 +88,11 @@ def root():
 
 # Add OPTIONS endpoint explicitly
 @app.options("/analyze_stock")
-async def options_analyze_stock():
+async def options_analyze_stock(request: Request):
     return JSONResponse(
         content={},
         headers={
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": request.headers.get("origin", "*"),
             "Access-Control-Allow-Methods": "POST, OPTIONS",
             "Access-Control-Allow-Headers": "*",
             "Access-Control-Allow-Credentials": "true"
